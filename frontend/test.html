@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Tester 🚀</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #1e1e1e; color: #e0e0e0; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2 { color: #4caf50; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .card { background: #2d2d2d; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; background: #333; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box; }
+        button { background: #4caf50; color: white; border: none; padding: 12px 20px; cursor: pointer; font-size: 16px; border-radius: 4px; width: 100%; transition: 0.3s; }
+        button:hover { background: #45a049; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .hidden { display: none; }
+        .question-box { border-left: 4px solid #4caf50; padding-left: 15px; margin-bottom: 20px; }
+        .score-display { font-size: 2em; font-weight: bold; text-align: center; color: #ffeb3b; margin: 20px 0; }
+        pre { background: #111; padding: 10px; overflow-x: auto; border-radius: 4px; }
+        label { font-weight: bold; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 AI Interview Tester</h1>
+
+    <div id="login-section" class="card">
+        <h2>1. Giriş Yap</h2>
+        <input type="email" id="email" placeholder="Email (örn: batu@test.com)" value="batu@gmail.com">
+        <input type="password" id="password" placeholder="Şifre" value="123456password">
+        <button onclick="login()">Giriş Yap</button>
+        <p id="login-msg" style="color: yellow;"></p>
+    </div>
+
+    <div id="config-section" class="card hidden">
+        <h2>2. Mülakat Ayarları</h2>
+        <label>Alan (Field)</label>
+        <input type="text" id="field" placeholder="Örn: React Native, Node.js, DevOps" value="React Native">
+        
+        <label>Zorluk (Difficulty)</label>
+        <select id="difficulty">
+            <option value="Junior">Junior</option>
+            <option value="Mid-Level">Mid-Level</option>
+            <option value="Senior">Senior</option>
+        </select>
+
+        <button onclick="startInterview()" id="start-btn">Mülakatı Başlat (AI Soru Üretiyor...)</button>
+    </div>
+
+    <div id="interview-section" class="card hidden">
+        <h2>3. Soruları Cevapla</h2>
+        <div id="questions-container"></div>
+        <button onclick="submitInterview()" id="submit-btn" style="background-color: #ff9800;">Mülakatı Bitir & Puanla</button>
+    </div>
+
+    <div id="result-section" class="card hidden">
+        <h2>4. Sonuçlar ve Feedback</h2>
+        <div class="score-display" id="score-text"></div>
+        <div id="feedback-content"></div>
+        <button onclick="location.reload()">Yeni Mülakat Başlat</button>
+    </div>
+
+    <script>
+        let TOKEN = null;
+        let INTERVIEW_ID = null;
+        let QUESTIONS = [];
+
+        const API_URL = "http://localhost:5000/api";
+
+        // 1. LOGIN
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    TOKEN = data.token;
+                    document.getElementById('login-section').classList.add('hidden');
+                    document.getElementById('config-section').classList.remove('hidden');
+                    console.log("Token alındı:", TOKEN);
+                } else {
+                    alert("Giriş hatası: " + data.message);
+                }
+            } catch (err) { alert("Sunucuya bağlanılamadı!"); }
+        }
+
+        // 2. START INTERVIEW
+        async function startInterview() {
+            const field = document.getElementById('field').value;
+            const difficulty = document.getElementById('difficulty').value;
+            const btn = document.getElementById('start-btn');
+            
+            btn.innerText = "Yapay Zeka Soruları Hazırlıyor...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/interview/start`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${TOKEN}`
+                    },
+                    body: JSON.stringify({ field, difficulty })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    INTERVIEW_ID = data.interviewId;
+                    QUESTIONS = data.questions;
+                    renderQuestions();
+                    document.getElementById('config-section').classList.add('hidden');
+                    document.getElementById('interview-section').classList.remove('hidden');
+                } else {
+                    alert("Hata: " + data.message);
+                    btn.disabled = false;
+                    btn.innerText = "Tekrar Dene";
+                }
+            } catch (err) { 
+                console.error(err);
+                alert("Bir hata oluştu.");
+                btn.disabled = false; 
+            }
+        }
+
+        // SORULARI EKRANA BAS
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            QUESTIONS.forEach((q, index) => {
+                container.innerHTML += `
+                    <div class="question-box">
+                        <p><strong>Soru ${index + 1}:</strong> ${q.question}</p>
+                        <textarea id="answer-${index}" rows="3" placeholder="Cevabınızı buraya yazın..."></textarea>
+                    </div>
+                `;
+            });
+        }
+
+        // 3. SUBMIT INTERVIEW
+        async function submitInterview() {
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "Yapay Zeka Cevaplarını Okuyor...";
+            btn.disabled = true;
+
+            // Cevapları topla
+            const answers = QUESTIONS.map((q, index) => ({
+                question: q.question,
+                answer: document.getElementById(`answer-${index}`).value || "Cevap verilmedi."
+            }));
+
+            try {
+                const res = await fetch(`${API_URL}/interview/submit`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${TOKEN}`
+                    },
+                    body: JSON.stringify({ interviewId: INTERVIEW_ID, answers })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showResults(data);
+                } else {
+                    alert("Gönderme hatası: " + data.message);
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Hata oluştu");
+                btn.disabled = false;
+            }
+        }
+
+        // SONUÇLARI GÖSTER
+        function showResults(data) {
+            document.getElementById('interview-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+
+            const score = data.score || 0;
+            const feedback = data.feedback || {};
+
+            document.getElementById('score-text').innerText = `Puanın: ${score} / 100`;
+
+            let html = `<h3>Genel Yorum:</h3><p>${feedback.feedback || "Yorum yok"}</p>`;
+            
+            if(feedback.strengths) {
+                html += `<h4>💪 Güçlü Yönler:</h4><ul>${feedback.strengths.map(s => `<li>${s}</li>`).join('')}</ul>`;
+            }
+            if(feedback.weaknesses) {
+                html += `<h4>⚠️ Geliştirilmesi Gerekenler:</h4><ul>${feedback.weaknesses.map(w => `<li>${w}</li>`).join('')}</ul>`;
+            }
+            
+            document.getElementById('feedback-content').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
