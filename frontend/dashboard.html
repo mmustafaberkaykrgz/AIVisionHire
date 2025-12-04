@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Dashboard 🚀</title>
+    <style>
+        /* --- GENEL AYARLAR --- */
+        body { 
+            font-family: 'Segoe UI', Inter, sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* --- KART TASARIMLARI --- */
+        .card { 
+            background: #1e1e1e; 
+            padding: 25px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+            border: 1px solid #333;
+        }
+        
+        /* --- IZGARA (GRID) YAPISI --- */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* --- METİNLER --- */
+        h1, h2, h3 { color: #bb86fc; margin-top: 0; }
+        h1 { font-size: 2rem; }
+        .stat-number { font-size: 3em; font-weight: bold; color: #03dac6; margin: 10px 0; }
+        .stat-label { color: #aaa; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- BUTONLAR --- */
+        button { 
+            background: #bb86fc; 
+            color: #000; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: 0.2s; 
+            font-size: 14px;
+        }
+        button:hover { background: #9965f4; transform: translateY(-2px); }
+        .btn-logout { background: #cf6679; color: white; }
+        .btn-logout:hover { background: #b00020; }
+        .btn-small { padding: 6px 12px; font-size: 0.85em; }
+
+        /* --- INPUTLAR --- */
+        input { 
+            background: #2c2c2c; 
+            border: 1px solid #444; 
+            color: white; 
+            padding: 12px; 
+            border-radius: 6px; 
+            width: 100%; 
+            margin-bottom: 15px; 
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+        input:focus { border-color: #bb86fc; outline: none; }
+
+        /* --- TABLO --- */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #333; }
+        th { color: #bb86fc; font-weight: 600; text-transform: uppercase; font-size: 0.85em; }
+        tr:hover { background-color: #252525; }
+        
+        /* --- BADGE (ETİKETLER) --- */
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8em; margin-right: 5px; display: inline-block; margin-bottom: 5px; font-weight: 600; }
+        .badge-green { background: rgba(3, 218, 198, 0.15); color: #03dac6; border: 1px solid #03dac6; }
+        .badge-red { background: rgba(207, 102, 121, 0.15); color: #cf6679; border: 1px solid #cf6679; }
+        .badge-blue { background: rgba(187, 134, 252, 0.15); color: #bb86fc; border: 1px solid #bb86fc; }
+
+        /* --- MODAL (POP-UP) --- */
+        .hidden { display: none !important; }
+        .modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 1000; 
+        }
+        .modal-content { 
+            background: #1e1e1e; padding: 30px; border-radius: 12px; width: 800px; 
+            max-height: 85vh; overflow-y: auto; position: relative; border: 1px solid #444; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+        .close-btn { 
+            position: absolute; top: 15px; right: 20px; font-size: 28px; 
+            cursor: pointer; color: #aaa; transition: 0.2s; 
+        }
+        .close-btn:hover { color: white; }
+
+        /* --- MODAL İÇİ KUTULAR --- */
+        .qa-box { 
+            background: #252525; padding: 15px; margin-bottom: 15px; 
+            border-radius: 8px; border-left: 4px solid #03dac6; 
+        }
+        .ai-feedback-box { 
+            background: #2a2036; padding: 20px; border-radius: 8px; 
+            margin-bottom: 20px; border: 1px solid #bb86fc; 
+        }
+        .score-display { 
+            position: absolute; top: 20px; right: 60px; font-size: 1.5em; font-weight: bold; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="login-section" class="card" style="max-width: 400px; margin: 100px auto;">
+        <h2 style="text-align: center; margin-bottom: 20px;">🔐 Giriş Yap</h2>
+        <input type="email" id="email" placeholder="Email Adresiniz" value="batu@gmail.com">
+        <input type="password" id="password" placeholder="Şifreniz" value="123456password">
+        <button onclick="login()" style="width: 100%; font-size: 16px; padding: 12px;">Dashboard'u Aç</button>
+        <p id="login-error" style="color: #cf6679; text-align: center; margin-top: 15px; font-size: 0.9em;"></p>
+    </div>
+
+    <div id="dashboard-section" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1>🚀 Analiz Dashboard</h1>
+            <button class="btn-logout" onclick="logout()">Çıkış Yap</button>
+        </div>
+
+        <div class="grid-2">
+            <div class="card" style="text-align: center;">
+                <div class="stat-number" id="total-interviews">-</div>
+                <div class="stat-label">Toplam Mülakat</div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="stat-number" id="avg-score" style="color: #ffeb3b;">-</div>
+                <div class="stat-label">Ortalama Puan</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3>💪 En Güçlü Yönlerin</h3>
+                <div id="strengths-container">Yükleniyor...</div>
+            </div>
+            <div class="card">
+                <h3>⚠️ Geliştirmen Gerekenler</h3>
+                <div id="weaknesses-container">Yükleniyor...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3>📜 Son Mülakatlar</h3>
+                <button class="btn-small" onclick="loadHistory()">Yenile</button>
+            </div>
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Alan</th>
+                        <th>Zorluk</th>
+                        <th>Puan</th>
+                        <th style="text-align: right;">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div id="detail-modal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 style="border-bottom: 1px solid #444; padding-bottom: 10px;">📝 Mülakat Detayı</h2>
+        <div id="modal-score" class="score-display"></div>
+        
+        <div id="modal-body" style="margin-top: 20px;">
+            </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://localhost:5000/api";
+    let TOKEN = null;
+
+    // --- LOGOUT ---
+    function logout() {
+        location.reload();
+    }
+
+    // --- 1. LOGIN FONKSİYONU ---
+    async function login() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errBox = document.getElementById('login-error');
+        const btn = document.querySelector('#login-section button');
+
+        btn.innerText = "Giriş yapılıyor...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                TOKEN = data.token;
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                loadDashboardStats(); // İstatistikleri çek
+                loadHistory(); // Tabloyu doldur
+            } else {
+                errBox.innerText = "Hata: " + data.message;
+            }
+        } catch (err) { 
+            errBox.innerText = "Sunucuya bağlanılamadı!"; 
+            console.error(err);
+        } finally {
+            btn.innerText = "Dashboard'u Aç";
+            btn.disabled = false;
+        }
+    }
+
+    // --- 2. DASHBOARD İSTATİSTİKLERİNİ ÇEK ---
+    async function loadDashboardStats() {
+        try {
+            const res = await fetch(`${API_URL}/analytics/dashboard`, {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            const data = await res.json();
+
+            // Sayıları Yaz
+            document.getElementById('total-interviews').innerText = data.totalInterviews;
+            document.getElementById('avg-score').innerText = data.averageScore;
+
+            // Güçlü Yönler
+            const sContainer = document.getElementById('strengths-container');
+            sContainer.innerHTML = data.topStrengths.length 
+                ? data.topStrengths.map(s => `<span class="badge badge-green">${s}</span>`).join('') 
+                : '<span style="color:#666; font-style:italic;">Henüz yeterli veri yok.</span>';
+
+            // Zayıf Yönler
+            const wContainer = document.getElementById('weaknesses-container');
+            wContainer.innerHTML = data.topWeaknesses.length 
+                ? data.topWeaknesses.map(w => `<span class="badge badge-red">${w}</span>`).join('') 
+                : '<span style="color:#666; font-style:italic;">Henüz yeterli veri yok.</span>';
+
+        } catch (err) { console.error("Dashboard hatası:", err); }
+    }
+
+    // --- 3. GEÇMİŞ LİSTESİNİ ÇEK ---
+    async function loadHistory() {
+        const tbody = document.getElementById('history-body');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888;">Yükleniyor...</td></tr>';
+
+        try {
+            const res = await fetch(`${API_URL}/interview/my-interviews`, {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            const data = await res.json();
+
+            tbody.innerHTML = "";
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Henüz hiç mülakat yapmadınız.</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const date = new Date(item.createdAt).toLocaleDateString("tr-TR", { hour: '2-digit', minute: '2-digit' });
+                const scoreColor = item.score >= 70 ? '#4caf50' : (item.score >= 50 ? '#ffeb3b' : '#cf6679');
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${date}</td>
+                        <td><span class="badge badge-blue">${item.field}</span></td>
+                        <td>${item.difficulty}</td>
+                        <td style="color:${scoreColor}; font-weight:bold; font-size: 1.1em;">${item.score || 0}</td>
+                        <td style="text-align: right;">
+                            <button class="btn-small" onclick="loadInterviewDetail('${item._id}')">Detay Gör</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+        } catch (err) { console.error("History hatası:", err); }
+    }
+
+    // --- 4. DETAY GÖSTERME (MODAL AÇMA) ---
+    async function loadInterviewDetail(id) {
+        const modal = document.getElementById('detail-modal');
+        const modalBody = document.getElementById('modal-body');
+        const modalScore = document.getElementById('modal-score');
+        
+        modalBody.innerHTML = '<div style="text-align:center; padding:30px;">Yükleniyor...</div>';
+        modalScore.innerText = "";
+        modal.classList.remove('hidden'); // Modalı aç
+
+        try {
+            const res = await fetch(`${API_URL}/interview/${id}`, {
+                headers: { 'Authorization': `Bearer ${TOKEN}` }
+            });
+            const data = await res.json();
+
+            // Puanı sağ üste koy
+            const scoreColor = data.score >= 70 ? '#4caf50' : (data.score >= 50 ? '#ffeb3b' : '#cf6679');
+            modalScore.innerHTML = `<span style="color:${scoreColor}">${data.score}</span> <span style="font-size:0.5em; color:#aaa;">/100</span>`;
+
+            let content = "";
+
+            // --- AI ANALİZİ KISMI ---
+            if (data.aiFeedback) {
+                content += `
+                    <div class="ai-feedback-box">
+                        <h3 style="margin-top:0;">🤖 Yapay Zeka Yorumu</h3>
+                        <p style="line-height: 1.6; color: #ddd;">${data.aiFeedback.feedback || "Genel yorum bulunamadı."}</p>
+                        
+                        ${data.aiFeedback.suggestions && data.aiFeedback.suggestions.length ? 
+                          `<h4 style="color:#ffeb3b; margin-top:15px;">💡 Gelişim Önerileri:</h4>
+                           <ul style="padding-left:20px; color:#ddd;">${data.aiFeedback.suggestions.map(s => `<li style="margin-bottom:5px;">${s}</li>`).join('')}</ul>` 
+                          : ''}
+                    </div>
+                `;
+            }
+
+            // --- SORU & CEVAP KISMI ---
+            if (data.answers && data.answers.length > 0) {
+                content += `<h3 style="margin: 30px 0 15px 0;">Soru & Cevaplar</h3>`;
+                data.answers.forEach((ans, i) => {
+                    content += `
+                        <div class="qa-box">
+                            <p style="color:#888; margin:0 0 8px 0; font-size:0.9em;">SORU ${i+1}</p>
+                            <p style="color:#fff; font-weight:600; margin:0 0 12px 0; font-size:1.05em;">${ans.question}</p>
+                            <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:5px;">
+                                <span style="color:#03dac6; font-weight:bold;">Sizin Cevabınız:</span>
+                                <p style="margin:5px 0 0 0; color:#ddd;">${ans.answer}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                content += `<p style="text-align:center; color:#666;">Cevap kaydı bulunamadı.</p>`;
+            }
+
+            modalBody.innerHTML = content;
+
+        } catch (err) { 
+            console.error(err);
+            modalBody.innerHTML = `<p style="color:#cf6679; text-align:center;">Detaylar yüklenirken hata oluştu.</p>`; 
+        }
+    }
+
+    // --- MODAL KAPATMA ---
+    function closeModal() {
+        document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    // Modal dışına tıklayınca kapat
+    window.onclick = function(event) {
+        const modal = document.getElementById('detail-modal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>
+
+</body>
+</html>
