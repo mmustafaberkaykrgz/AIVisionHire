@@ -1,38 +1,81 @@
+// backend/models/Interview.model.js
 import mongoose from "mongoose";
 
-const InterviewSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
+const QuestionSchema = new mongoose.Schema(
+  {
+    order: { type: Number, required: true },
+    type: {
+      type: String,
+      enum: ["open", "mcq", "code"],
+      default: "open",
+    },
+    question: { type: String, required: true },
+
+    // MCQ için
+    options: [{ type: String }],      // ["A", "B", "C", "D"]
+    correctAnswer: { type: String },  // "A" ya da "useEffect"
+
+    // Zaman (saniye)
+    timeLimitSec: { type: Number },
   },
+  { _id: false }
+);
 
-  field: { type: String, required: true }, 
+const AnswerSchema = new mongoose.Schema(
+  {
+    order: { type: Number, required: true },
+    type: { type: String, enum: ["open", "mcq", "code"], default: "open" },
 
-  questions: [
-    {
-      question: String,
-      order: Number
-    }
-  ],
+    // open & code cevapları
+    answerText: { type: String },
 
-  answers: [
-    {
-      question: String,
-      answer: String,
-      order: Number
-    }
-  ],
+    // MCQ için seçilen seçenek
+    selectedOption: { type: String },
+  },
+  { _id: false }
+);
 
- difficulty: { type: String, required: true }, 
-  aiFeedback: { type: Object }, 
+const FeedbackSchema = new mongoose.Schema(
+  {
+    feedback: String,
+    strengths: [String],
+    weaknesses: [String],
+    suggestions: [String],
+  },
+  { _id: false }
+);
 
-  score: { type: Number },        
-  duration: { type: Number },    
+const InterviewSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
-}, { timestamps: true });
+    field: { type: String, required: true },
 
-const Interview= mongoose.model("Interview", InterviewSchema);
+    difficulty: {
+      type: String,
+      enum: ["junior", "mid", "senior"],
+      required: true,
+    },
+
+    questions: [QuestionSchema],
+
+    answers: [AnswerSchema],
+
+    aiFeedback: FeedbackSchema,
+
+    score: { type: Number, default: 0 },
+
+    // Tüm mülakat için toplam süre (saniye)
+    timeLimitSeconds: { type: Number },
+  },
+  { timestamps: true }
+);
+
+const Interview = mongoose.model("Interview", InterviewSchema);
 
 export default Interview;
 
