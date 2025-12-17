@@ -10,7 +10,6 @@ const TOTAL_TIME_SECONDS = {
 };
 
 // ✅ YENİ: Retry (Tekrar Deneme) Yardımcı Fonksiyonu
-// Model overloaded (503) hatası verirse, belirtilen sayı kadar tekrar dener.
 const generateWithRetry = async (genAI, modelName, prompt, retries = 3) => {
   const model = genAI.getGenerativeModel({ model: modelName });
   
@@ -31,7 +30,7 @@ const generateWithRetry = async (genAI, modelName, prompt, retries = 3) => {
   }
 };
 
-// ✅ Quota dolarsa mülakat yine başlasın (fallback sorular)
+// ✅ Quota dolarsa mülakat yine başlasın (fallback)
 const fallbackQuestions = (field, difficulty) => {
   return [
     `Explain core concepts in ${field} and give real examples.`,
@@ -82,9 +81,10 @@ Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
 }
       `;
 
-      // YENİ: Retry fonksiyonu ile çağırıyoruz
+      // Retry ile çağır (Sadece 2.5 Flash)
       const result = await generateWithRetry(genAI, "gemini-2.5-flash", prompt);
       
+      // ✅ ESKİ PARSER MANTIĞI GERİ GELDİ
       const responseText = result.response
         .text()
         .replace(/json/gi, "")
@@ -207,40 +207,33 @@ Return ONLY raw JSON in this format (no markdown):
 }
       `;
 
-      // YENİ: Fallback ve Retry Mekanizması
       let result;
       try {
         // 1. DENEME: Ana Model (2.5 Flash)
-        console.log("Gemini 2.5 Flash ile değerlendirme başlatılıyor...");
+        console.log("Gemini 2.5 Flash ile deneniyor...");
         result = await generateWithRetry(genAI, "gemini-2.5-flash", prompt);
       
       } catch (primaryErr) {
-        // 2. DENEME: Fallback Model (2.0 Flash) - 1.5 ARTIK DEPRECATED
-        console.warn("❌ 2.5 Flash yanıt vermedi. Fallback: Gemini 2.0 Flash deneniyor...", primaryErr.message);
+        // 2. DENEME: Fallback Model (2.0 Flash)
+        console.warn("❌ 2.5 Flash yanıt vermedi. Fallback: Gemini 2.0 Flash deneniyor...");
         result = await generateWithRetry(genAI, "gemini-2.0-flash", prompt);
       }
 
+      // ✅ ESKİ PARSER MANTIĞI GERİ GELDİ (JSON.parse direct call)
       const rawText = result.response
         .text()
         .replace(/```/g, "")
         .trim();
       console.log("Gemini rawText:", rawText);
 
-      // JSON parse güvenliği (Fazladan metin gelirse temizle)
-      const jsonStart = rawText.indexOf('{');
-      const jsonEnd = rawText.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-          aiResult = JSON.parse(rawText.substring(jsonStart, jsonEnd + 1));
-      } else {
-          throw new Error("JSON formatı bulunamadı.");
-      }
+      aiResult = JSON.parse(rawText);
 
     } catch (err) {
       console.error("AI grading failed:", err?.message);
       aiResult = {
         score: 0,
         feedback: {
-          feedback: "AI servisi şu an çok yoğun olduğu için değerlendirme yapılamadı. Puanınız kaydedildi, detaylı geri bildirimi daha sonra kontrol ediniz.",
+          feedback: "AI grading unavailable (quota/parse error).",
           strengths: [],
           weaknesses: [],
           suggestions: [],
