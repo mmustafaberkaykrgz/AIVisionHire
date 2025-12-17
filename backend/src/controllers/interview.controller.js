@@ -9,7 +9,7 @@ const TOTAL_TIME_SECONDS = {
   senior: 40 * 60,  // 2400
 };
 
-// ✅ YENİ: Retry (Tekrar Deneme) Yardımcı Fonksiyonu
+// ✅ YARDIMCI: Retry (Tekrar Deneme) Fonksiyonu
 const generateWithRetry = async (genAI, modelName, prompt, retries = 3) => {
   const model = genAI.getGenerativeModel({ model: modelName });
   
@@ -17,16 +17,49 @@ const generateWithRetry = async (genAI, modelName, prompt, retries = 3) => {
     try {
       return await model.generateContent(prompt);
     } catch (err) {
-      // Hata 503 (Service Unavailable) veya 429 (Too Many Requests) ise tekrar dene
       const isOverloaded = err.message.includes("503") || err.message.includes("overloaded") || err.message.includes("429");
-      
       if (isOverloaded && i < retries - 1) {
         console.warn(`⚠️ Model ${modelName} yoğun (${i + 1}/${retries}). 2 saniye bekleniyor...`);
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 saniye bekle
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } else {
-        throw err; // Başka bir hataysa veya deneme hakkı bittiyse hatayı fırlat
+        throw err;
       }
     }
+  }
+};
+
+// ✅ YARDIMCI: Güvenli JSON Temizleyici (String içinden JSON'u söküp alır)
+const cleanAndParseJSON = (rawText) => {
+  try {
+    // 1. Önce markdown işaretlerini temizle
+    let text = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    // 2. İlk '{' veya '[' karakterini bul
+    const firstBrace = text.indexOf("{");
+    const firstBracket = text.indexOf("[");
+    
+    let startIndex = -1;
+    let endIndex = -1;
+
+    // Hangisi daha önce geliyorsa onu başlangıç kabul et
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+      startIndex = firstBrace;
+      endIndex = text.lastIndexOf("}");
+    } else if (firstBracket !== -1) {
+      startIndex = firstBracket;
+      endIndex = text.lastIndexOf("]");
+    }
+
+    // Eğer geçerli bir başlangıç ve bitiş bulduysak, o aralığı al
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+      text = text.substring(startIndex, endIndex + 1);
+    }
+
+    // 3. Parse et
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("JSON Parse Error:", error.message, "\nRaw Text:", rawText);
+    return null; // Başarısız olursa null dön
   }
 };
 
@@ -48,14 +81,11 @@ export const startInterview = async (req, res) => {
     const userId = req.userId;
 
     if (!field || !difficulty) {
-      return res
-        .status(400)
-        .json({ message: "Field and difficulty are required." });
+      return res.status(400).json({ message: "Field and difficulty are required." });
     }
 
     const diffKey = String(difficulty).toLowerCase();
-    const totalTimeSeconds =
-      TOTAL_TIME_SECONDS[diffKey] ?? TOTAL_TIME_SECONDS.junior;
+    const totalTimeSeconds = TOTAL_TIME_SECONDS[diffKey] ?? TOTAL_TIME_SECONDS.junior;
 
     let parsedQuestions = null;
 
@@ -73,7 +103,13 @@ Generate exactly 5 classic open-ended technical interview questions.
 - Do NOT generate multiple-choice questions.
 - Do NOT generate coding-only questions.
 
-Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
+IMPORTANT OUTPUT RULES:
+1. Return ONLY valid JSON.
+2. Do NOT use markdown code blocks (like \`\`\`json).
+3. Do NOT include any intro or outro text.
+4. The output must start with '{' and end with '}'.
+
+Structure:
 {
   "questions": [
     { "order": 1, "type": "open", "question": "string" }
@@ -81,18 +117,14 @@ Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
 }
       `;
 
-      // Retry ile çağır (Sadece 2.5 Flash)
+      // 1. Deneme: 2.5 Flash
       const result = await generateWithRetry(genAI, "gemini-2.5-flash", prompt);
       
-      // ✅ ESKİ PARSER MANTIĞI GERİ GELDİ
-      const responseText = result.response
-        .text()
-        .replace(/json/gi, "")
-        .replace(/```/g, "")
-        .trim();
-
-      const parsed = JSON.parse(responseText);
+      // ✅ Güvenli parse işlemi
+      const parsed = cleanAndParseJSON(result.response.text());
+      
       if (parsed?.questions?.length) parsedQuestions = parsed.questions;
+
     } catch (aiErr) {
       console.error("startInterview AI failed, using fallback:", aiErr?.message);
       parsedQuestions = fallbackQuestions(field, diffKey);
@@ -107,9 +139,7 @@ Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
     const remainder = totalTimeSeconds - perQuestionBase * count;
 
     const questions = parsedQuestions.map((q, idx) => {
-      // son soruya kalan saniyeyi ekle
       const timeLimitSec = perQuestionBase + (idx === count - 1 ? remainder : 0);
-
       return {
         order: q.order ?? idx + 1,
         type: "open",
@@ -129,7 +159,7 @@ Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
       answers: [],
       aiFeedback: null,
       score: 0,
-      timeLimitSeconds: totalTimeSeconds, // ✅ artık sabit toplam süre
+      timeLimitSeconds: totalTimeSeconds,
     });
 
     return res.status(201).json({
@@ -195,7 +225,12 @@ You are grading a technical interview for the field "${interview.field}" at "${i
 Here are all questions and candidate responses:
 ${qaBlock}
 
-Return ONLY raw JSON in this format (no markdown):
+IMPORTANT OUTPUT RULES:
+1. Return ONLY valid JSON.
+2. Do NOT use markdown code blocks.
+3. The output must start with '{' and end with '}'.
+
+Structure:
 {
   "score": number (0-100),
   "feedback": {
@@ -209,31 +244,29 @@ Return ONLY raw JSON in this format (no markdown):
 
       let result;
       try {
-        // 1. DENEME: Ana Model (2.5 Flash)
-        console.log("Gemini 2.5 Flash ile deneniyor...");
+        console.log("Gemini 2.5 Flash ile değerlendirme başlatılıyor...");
         result = await generateWithRetry(genAI, "gemini-2.5-flash", prompt);
-      
       } catch (primaryErr) {
-        // 2. DENEME: Fallback Model (2.0 Flash)
         console.warn("❌ 2.5 Flash yanıt vermedi. Fallback: Gemini 2.0 Flash deneniyor...");
         result = await generateWithRetry(genAI, "gemini-2.0-flash", prompt);
       }
 
-      // ✅ ESKİ PARSER MANTIĞI GERİ GELDİ (JSON.parse direct call)
-      const rawText = result.response
-        .text()
-        .replace(/```/g, "")
-        .trim();
-      console.log("Gemini rawText:", rawText);
+      // ✅ Güvenli parse işlemi
+      const rawText = result.response.text();
+      console.log("Gemini rawText (öncesi):", rawText); // Loglayalım ki hatayı görebilelim
+      
+      aiResult = cleanAndParseJSON(rawText);
 
-      aiResult = JSON.parse(rawText);
+      if (!aiResult) {
+        throw new Error("JSON parse edilemedi veya boş döndü.");
+      }
 
     } catch (err) {
       console.error("AI grading failed:", err?.message);
       aiResult = {
         score: 0,
         feedback: {
-          feedback: "AI grading unavailable (quota/parse error).",
+          feedback: "AI değerlendirmesi sırasında teknik bir aksaklık oluştu (JSON format hatası veya sunucu yoğunluğu).",
           strengths: [],
           weaknesses: [],
           suggestions: [],
