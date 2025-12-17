@@ -1,207 +1,194 @@
-// src/pages/DashboardPage.jsx
 import React, { useEffect, useState } from "react";
-import analyticsApi from "../api/analyticsApi";
 import { useAuth } from "../context/AuthContext";
+import analyticsApi from "../api/analyticsApi";
 import { Link } from "react-router-dom";
+import {
+  Gauge,
+  BookOpen,
+  TrendingUp,
+  TrendingDown,
+  LogOut,
+} from "lucide-react";
 
+
+
+/* ------------------ UI COMPONENTS ------------------ */
+
+const DashboardCard = ({ title, value, icon }) => (
+  <div className="
+    bg-[#0E1325]/80
+    border border-white/5
+    rounded-2xl p-6
+    shadow-lg
+    hover:border-purple-500/30
+    transition
+  ">
+    <div className="flex justify-between items-center text-sm text-slate-400">
+      <span>{title}</span>
+      {icon}
+    </div>
+    <p className="mt-4 text-4xl font-extrabold text-white">{value}</p>
+  </div>
+);
+
+const DetailCard = ({ title, data, icon, color }) => (
+  <div className="
+    bg-[#0E1325]/80
+    border border-white/5
+    rounded-2xl p-6
+    shadow-lg
+  ">
+    <div className="flex items-center gap-2 mb-4">
+      {icon}
+      <h3 className="text-lg font-bold">{title}</h3>
+    </div>
+
+    {data?.length ? (
+      <div className="flex flex-wrap gap-2">
+        {data.map((item) => (
+          <span
+            key={item}
+            className={`px-4 py-1 rounded-full text-sm font-semibold ${color}`}
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    ) : (
+      <p className="text-slate-500 italic">Henüz yeterli veri yok.</p>
+    )}
+  </div>
+);
+
+/* ------------------ PAGE ------------------ */
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const loadStats = async () => {
       try {
         const res = await analyticsApi.getDashboardStats();
-        setStats(res.data);
+
+        setStats({
+          totalInterviews: res.data?.totalInterviews,
+          averageScore: res.data?.averageScore,
+          strengths: res.data?.topStrengths,
+          weaknesses: res.data?.topWeaknesses,
+        });
       } catch (err) {
-        console.error(err);
-        setError("Failed to load dashboard stats.");
-      } finally {
-        setLoading(false);
+        console.error("Dashboard verileri alınamadı", err);
       }
     };
 
-    fetchStats();
+    loadStats();
   }, []);
 
-  const handleLogout = () => {
-    logout();
-  };
-
-  if (loading) {
-    return <div style={pageStyle}>Loading dashboard...</div>;
-  }
-
-  if (error) {
-    return <div style={pageStyle}>{error}</div>;
+  if (!stats) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-slate-400">
+        Yükleniyor...
+      </div>
+    );
   }
 
   return (
-    <div style={pageStyle}>
-      <div style={layoutStyle}>
-        <header style={headerStyle}>
-          <h1>AIVisionHire Dashboard</h1>
-          <div>
-            <span style={{ marginRight: 8 }}>
-              {user ? `Hi, ${user.name}` : ""}
+    <div className="min-h-screen bg-black text-white">
+      {/* HEADER */}
+      <header className="
+        sticky top-0 z-50
+        bg-black/70 backdrop-blur-xl
+        border-b border-white/5
+      ">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-extrabold">
+              AIVisionHire <span className="text-purple-400">Dashboard</span>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="hidden sm:block text-slate-400">
+              Merhaba, {user?.name}
             </span>
-            <button onClick={handleLogout} style={logoutButtonStyle}>
-              Logout
+            <button
+              onClick={logout}
+              className="
+                flex items-center gap-2
+                px-4 py-2 rounded-lg
+                border border-red-500/30
+                text-red-300
+                hover:bg-red-500/10
+                transition
+              "
+            >
+              <LogOut size={16} />
+              Çıkış
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main>
-          <div style={cardsRowStyle}>
-            <div style={cardStyle}>
-              <h3>Total Interviews</h3>
-              <p style={bigNumberStyle}>{stats.totalInterviews}</p>
-            </div>
-            <div style={cardStyle}>
-              <h3>Average Score</h3>
-              <p style={bigNumberStyle}>{stats.averageScore}</p>
-            </div>
-          </div>
+      {/* CONTENT */}
+      <main className="max-w-6xl mx-auto px-6 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <DashboardCard
+            title="Toplam Mülakat Sayısı"
+            value={stats.totalInterviews}
+            icon={<BookOpen className="text-purple-400" />}
+          />
+          <DashboardCard
+            title="Ortalama Başarı Puanı"
+            value={`${stats.averageScore} / 10`}
+            icon={<Gauge className="text-green-400" />}
+          />
+        </div>
 
-          <div style={cardsRowStyle}>
-            <div style={cardStyle}>
-              <h3>Top Strengths</h3>
-              {stats.topStrengths?.length ? (
-                <div style={badgeContainerStyle}>
-                  {stats.topStrengths.map((s) => (
-                    <span key={s} style={badgeGreen}>
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p>No data yet.</p>
-              )}
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <DetailCard
+            title="En Güçlü Yönler"
+            data={stats.strengths}
+            icon={<TrendingUp className="text-green-400" />}
+            color="bg-green-500/20 text-green-300"
+          />
+          <DetailCard
+            title="Geliştirilecek Alanlar"
+            data={stats.weaknesses}
+            icon={<TrendingDown className="text-red-400" />}
+            color="bg-red-500/20 text-red-300"
+          />
+        </div>
 
-            <div style={cardStyle}>
-              <h3>Top Weaknesses</h3>
-              {stats.topWeaknesses?.length ? (
-                <div style={badgeContainerStyle}>
-                  {stats.topWeaknesses.map((w) => (
-                    <span key={w} style={badgeRed}>
-                      {w}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p>No data yet.</p>
-              )}
-            </div>
-          </div>
-                    {/* Quick action */}
-          <div style={{ marginTop: 16 }}>
-            <Link
-              to="/interview/setup"
-              style={{
-                padding: "10px 14px",
-                borderRadius: 8,
-                background: "#4f46e5",
-                color: "#fff",
-                textDecoration: "none",
-                fontWeight: 600,
-              }}
-            >
-              ➕ Start New Interview
-            </Link>
-          </div>
-          <div style={{ marginTop: 8 }}>
+        <div className="flex gap-4 flex-wrap">
           <Link
-          to="/interviews"
-          style={{
-          padding: "8px 12px",
-          borderRadius: 8,
-          background: "#111827",
-          color: "#e5e7eb",
-          textDecoration: "none",
-          fontSize: 14,
-          border: "1px solid #4b5563",
-        }}
-  >
-    📜 View My Interviews
-  </Link>
-</div>        
-
-        </main>
-      </div>
+            to="/interview/setup"
+            className="
+              px-8 py-4 rounded-2xl font-bold
+              bg-gradient-to-r from-purple-600 to-indigo-600
+              hover:opacity-90
+              transition
+              shadow-lg shadow-purple-600/30
+            "
+          >
+            Yeni Mülakat Başlat →
+          </Link>
+          <Link
+            to="/interviews"
+            className="
+              px-6 py-4 rounded-2xl
+              border border-purple-500/30
+              text-purple-300
+              hover:bg-purple-500/10
+              transition
+            "
+          >
+            Tüm Mülakatlar
+          </Link>
+        </div>
+      </main>
     </div>
   );
-};
-
-const pageStyle = {
-  minHeight: "100vh",
-  background: "#020617",
-  color: "#e5e7eb",
-  padding: "24px 0",
-};
-
-const layoutStyle = {
-  maxWidth: 900,
-  margin: "0 auto",
-  padding: "0 16px",
-};
-
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 24,
-};
-
-const logoutButtonStyle = {
-  padding: "6px 10px",
-  borderRadius: 8,
-  border: "1px solid #f87171",
-  background: "transparent",
-  color: "#fca5a5",
-  cursor: "pointer",
-};
-
-const cardsRowStyle = {
-  display: "flex",
-  gap: 16,
-  marginBottom: 16,
-  flexWrap: "wrap",
-};
-
-const cardStyle = {
-  flex: 1,
-  minWidth: 250,
-  background: "#111827",
-  padding: 16,
-  borderRadius: 12,
-  marginBottom: 16,
-};
-
-const bigNumberStyle = { fontSize: 32, fontWeight: 700, marginTop: 8 };
-
-const badgeContainerStyle = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 8,
-  marginTop: 8,
-};
-
-const badgeGreen = {
-  padding: "4px 8px",
-  borderRadius: 999,
-  background: "#065f46",
-  fontSize: 12,
-};
-
-const badgeRed = {
-  padding: "4px 8px",
-  borderRadius: 999,
-  background: "#7f1d1d",
-  fontSize: 12,
 };
 
 export default DashboardPage;

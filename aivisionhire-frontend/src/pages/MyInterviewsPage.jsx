@@ -15,103 +15,134 @@ const MyInterviewsPage = () => {
         const res = await interviewApi.getMyInterviews();
         setInterviews(res.data || []);
       } catch (err) {
-        console.error(err);
         setError("Failed to load interview history.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  const handleShowDetails = (id) => {
-    navigate(`/interviews/${id}`);
-  };
-
-  const formatDate = (value) => {
-    if (!value) return "";
-    return new Date(value).toLocaleString();
-  };
+  const formatDate = (v) => (v ? new Date(v).toLocaleString() : "");
 
   if (loading) {
-    return <div style={pageStyle}>Loading interviews...</div>;
+    return (
+      <div style={Page}>
+        <div style={Card}>Loading interviews...</div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div style={pageStyle}>{error}</div>;
+    return (
+      <div style={Page}>
+        <div style={Card}>{error}</div>
+      </div>
+    );
   }
 
   return (
-    <div style={pageStyle}>
-      <div style={containerStyle}>
-        <header style={headerStyle}>
-          <h2>My Interviews</h2>
-          <button style={buttonSecondary} onClick={() => navigate("/dashboard")}>
-            ← Back to Dashboard
+    <div style={Page}>
+      <div style={Card}>
+        {/* HEADER */}
+        <div style={Header}>
+          <div>
+            <h2>My Interviews</h2>
+            <span style={Meta}>Your interview history & results</span>
+          </div>
+
+          <button type="button" style={Secondary} onClick={() => navigate("/dashboard")}> 
+            ← Dashboard
           </button>
-        </header>
+        </div>
 
         {interviews.length === 0 ? (
-          <p>You have no interviews yet.</p>
+          <div style={Empty}>No interviews found.</div>
         ) : (
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thTdStyle}>Date</th>
-                <th style={thTdStyle}>Field</th>
-                <th style={thTdStyle}>Difficulty</th>
-                <th style={thTdStyle}>Score</th>
-                <th style={thTdStyle}>Actions</th> {/* 🆕 */}
-              </tr>
-            </thead>
-            <tbody>
-              {interviews.map((item) => (
-                <tr key={item._id} style={rowStyle}>
-                  <td style={thTdStyle}>{formatDate(item.createdAt)}</td>
-                  <td style={thTdStyle}>{item.field}</td>
-                  <td style={thTdStyle}>{item.difficulty}</td>
-                  <td style={thTdStyle}>{item.score}</td>
-                  <td style={thTdStyle}>
-                    <button
-                      style={detailsButtonStyle}
-                      onClick={() => handleShowDetails(item._id)}
-                    >
-                      Show Details
-                    </button>
-                  </td>
+          <div style={TableWrapper}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={Th}>Date</th>
+                  <th style={Th}>Field</th>
+                  <th style={Th}>Difficulty</th>
+                  <th style={Th}>Score</th>
+                  <th style={Th} align="right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {interviews.map((item) => (
+                  <tr key={item._id} style={rowStyle}>
+                    <td style={Td}>{formatDate(item.createdAt)}</td>
+                    <td style={Td}>{item.field}</td>
+                    <td style={Td}>
+                      <span style={Badge}>{item.difficulty}</span>
+                    </td>
+                    <td style={Td}>
+                      <span style={Score}>{item.score}</span>
+                    </td>
+                    <td style={Td} align="right">
+                      <button
+                        type="button"
+                        style={PrimarySmall}
+                        onClick={() => navigate(`/interviews/${item._id}`)}
+                      >
+                        Details →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-const pageStyle = {
+/* ---------------- GLOBAL STYLE SYSTEM ---------------- */
+
+const Page = {
   minHeight: "100vh",
-  background: "#020617",
-  color: "#e5e7eb",
+  background: "radial-gradient(circle at top, #020617, #000)",
   display: "flex",
-  alignItems: "center",
   justifyContent: "center",
-};
-
-const containerStyle = {
-  width: "100%",
-  maxWidth: 900,
-  background: "#111827",
   padding: 24,
-  borderRadius: 12,
+  color: "#e5e7eb",
 };
 
-const headerStyle = {
+const Card = {
+  width: "100%",
+  maxWidth: 1000,
+  background: "#0b1220",
+  padding: 28,
+  borderRadius: 16,
+  border: "1px solid #1f2937",
+  boxShadow: "0 20px 40px rgba(0,0,0,.5)",
+};
+
+const Header = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 16,
+  marginBottom: 20,
+  gap: 12,
+  flexWrap: "wrap",
+};
+
+const Meta = {
+  fontSize: 14,
+  opacity: 0.7,
+};
+
+const Empty = {
+  opacity: 0.7,
+  marginTop: 16,
+};
+
+const TableWrapper = {
+  overflowX: "auto",
 };
 
 const tableStyle = {
@@ -120,33 +151,51 @@ const tableStyle = {
   fontSize: 14,
 };
 
-const thTdStyle = {
-  borderBottom: "1px solid #374151",
-  padding: "8px 10px",
+const Th = {
   textAlign: "left",
+  padding: "12px 10px",
+  borderBottom: "1px solid #334155",
+  fontWeight: 600,
+  opacity: 0.85,
+};
+
+const Td = {
+  padding: "12px 10px",
+  borderBottom: "1px solid #1f2937",
 };
 
 const rowStyle = {
-  cursor: "default",
+  transition: "background .2s",
 };
 
-const buttonSecondary = {
-  padding: "6px 10px",
-  borderRadius: 8,
-  border: "1px solid #4b5563",
+const Badge = {
+  padding: "4px 10px",
+  borderRadius: 999,
+  background: "#1f2937",
+  fontSize: 12,
+};
+
+const Score = {
+  fontWeight: 700,
+};
+
+const PrimarySmall = {
+  padding: "6px 12px",
+  borderRadius: 10,
+  border: "none",
+  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
+  color: "#fff",
+  fontWeight: 700,
+  cursor: "pointer",
+  fontSize: 12,
+};
+
+const Secondary = {
+  padding: "8px 12px",
+  borderRadius: 10,
+  border: "1px solid #334155",
   background: "transparent",
   color: "#e5e7eb",
-  cursor: "pointer",
-};
-
-const detailsButtonStyle = {
-  padding: "6px 10px",
-  borderRadius: 8,
-  border: "none",
-  background: "#4f46e5",
-  color: "#fff",
-  fontSize: 12,
-  fontWeight: 600,
   cursor: "pointer",
 };
 

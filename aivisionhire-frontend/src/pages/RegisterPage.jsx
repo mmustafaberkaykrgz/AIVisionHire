@@ -26,14 +26,12 @@ const RegisterPage = () => {
 
     try {
       await authApi.register(form);
-      setSuccess("Registration successful. You can now login.");
-      // Kısa bir bekleme sonrası direkt login sayfasına da yönlendirebilirsin:
-      setTimeout(() => navigate("/login"), 1000);
+      setSuccess("Account created successfully. Redirecting to login...");
+      setTimeout(() => navigate("/login"), 1200);
     } catch (err) {
-      console.error(err);
       setError(
         err.response?.data?.message ||
-          "Registration failed. Please check the form."
+          "Registration failed. Please check your details."
       );
     } finally {
       setIsLoading(false);
@@ -41,58 +39,60 @@ const RegisterPage = () => {
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Create Account</h1>
+    <div style={pageStyle}>
+      <div style={cardStyle}>
+        {/* LOGO / TITLE */}
+        <div style={headerStyle}>
+          <h1 style={titleStyle}>Create Account</h1>
+          <p style={subtitleStyle}>
+            Join <span style={brand}>AIVisionHire</span> and start practicing
+          </p>
+        </div>
 
-        {error && <div style={styles.errorBox}>{error}</div>}
-        {success && <div style={styles.successBox}>{success}</div>}
+        {error && <div style={errorStyle}>{error}</div>}
+        {success && <div style={successStyle}>{success}</div>}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>Name</label>
+        <form onSubmit={handleSubmit} style={formStyle}>
+          <Field label="Name">
             <input
-              style={styles.input}
+              style={inputStyle}
               name="name"
-              type="text"
               value={form.name}
               onChange={handleChange}
               required
             />
-          </div>
+          </Field>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Email</label>
+          <Field label="Email">
             <input
-              style={styles.input}
-              name="email"
+              style={inputStyle}
               type="email"
+              name="email"
               value={form.email}
               onChange={handleChange}
               required
             />
-          </div>
+          </Field>
 
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
+          <Field label="Password">
             <input
-              style={styles.input}
-              name="password"
+              style={inputStyle}
               type="password"
+              name="password"
               value={form.password}
               onChange={handleChange}
               required
             />
-          </div>
+          </Field>
 
-          <button type="submit" style={styles.button} disabled={isLoading}>
+          <button type="submit" style={primaryButton} disabled={isLoading}>
             {isLoading ? "Creating account..." : "Register"}
           </button>
         </form>
 
-        <p style={styles.bottomText}>
+        <p style={footerText}>
           Already have an account?{" "}
-          <Link to="/login" style={styles.link}>
+          <Link to="/login" style={linkStyle}>
             Login
           </Link>
         </p>
@@ -101,70 +101,116 @@ const RegisterPage = () => {
   );
 };
 
-const styles = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#0f172a",
-    color: "#fff",
-  },
-  card: {
-    width: "100%",
-    maxWidth: 420,
-    background: "#1f2937",
-    padding: 24,
-    borderRadius: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  errorBox: {
-    marginBottom: 12,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#b91c1c",
-  },
-  successBox: {
-    marginBottom: 12,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#065f46",
-  },
-  form: { display: "flex", flexDirection: "column", gap: 12 },
-  field: { display: "flex", flexDirection: "column", gap: 4 },
-  label: { fontSize: 14 },
-  input: {
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: "1px solid #4b5563",
-    background: "#020617",
-    color: "#e5e7eb",
-  },
-  button: {
-    marginTop: 8,
-    padding: "10px 12px",
-    borderRadius: 8,
-    border: "none",
-    background: "#22c55e",
-    color: "#fff",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  bottomText: {
-    marginTop: 12,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  link: {
-    color: "#60a5fa",
-    textDecoration: "none",
-    fontWeight: 600,
-  },
+/* ---------- SMALL COMPONENT ---------- */
+
+const Field = ({ label, children }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <label style={labelStyle}>{label}</label>
+    {children}
+  </div>
+);
+
+/* ---------- STYLE SYSTEM (LOGIN UYUMLU) ---------- */
+
+const pageStyle = {
+  minHeight: "100vh",
+  background: "radial-gradient(circle at top, #020617, #000)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 24,
+  color: "#e5e7eb",
+};
+
+const cardStyle = {
+  width: "100%",
+  maxWidth: 420,
+  background: "#0b1220",
+  padding: 28,
+  borderRadius: 16,
+  border: "1px solid #1f2937",
+  boxShadow: "0 20px 40px rgba(0,0,0,.5)",
+};
+
+const headerStyle = {
+  textAlign: "center",
+  marginBottom: 20,
+};
+
+const titleStyle = {
+  fontSize: 26,
+  fontWeight: 800,
+};
+
+const subtitleStyle = {
+  fontSize: 14,
+  opacity: 0.7,
+  marginTop: 6,
+};
+
+const brand = {
+  color: "#6366f1",
+  fontWeight: 700,
+};
+
+const formStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+};
+
+const labelStyle = {
+  fontSize: 13,
+  opacity: 0.8,
+};
+
+const inputStyle = {
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #334155",
+  background: "#020617",
+  color: "#e5e7eb",
+  outline: "none",
+};
+
+const primaryButton = {
+  marginTop: 10,
+  padding: "12px",
+  borderRadius: 12,
+  border: "none",
+  background: "linear-gradient(135deg,#22c55e,#16a34a)",
+  color: "#fff",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const errorStyle = {
+  marginBottom: 12,
+  padding: 10,
+  borderRadius: 10,
+  background: "#7f1d1d",
+  fontSize: 14,
+};
+
+const successStyle = {
+  marginBottom: 12,
+  padding: 10,
+  borderRadius: 10,
+  background: "#065f46",
+  fontSize: 14,
+};
+
+const footerText = {
+  marginTop: 16,
+  fontSize: 14,
+  textAlign: "center",
+  opacity: 0.8,
+};
+
+const linkStyle = {
+  color: "#818cf8",
+  fontWeight: 700,
+  textDecoration: "none",
 };
 
 export default RegisterPage;

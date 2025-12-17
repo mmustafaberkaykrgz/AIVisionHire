@@ -17,248 +17,288 @@ const InterviewDetailPage = () => {
         const res = await interviewApi.getInterviewById(id);
         setInterview(res.data);
       } catch (err) {
-        console.error(err);
-        setError(err.response?.data?.message || "Failed to load interview details.");
+        setError(
+          err.response?.data?.message ||
+            "Failed to load interview details."
+        );
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [id]);
 
-  const formatDate = (value) => {
-    if (!value) return "";
-    return new Date(value).toLocaleString();
-  };
+  const formatDate = (value) =>
+    value ? new Date(value).toLocaleString() : "";
 
-  if (loading) return <div style={pageStyle}>Loading interview...</div>;
-  if (error) return <div style={pageStyle}>{error}</div>;
-  if (!interview) return <div style={pageStyle}>Interview not found.</div>;
+  if (loading) return <Centered>Loading interview...</Centered>;
+  if (error) return <Centered>{error}</Centered>;
+  if (!interview) return <Centered>Interview not found.</Centered>;
 
-  const { field, difficulty, score, createdAt, questions, answers, aiFeedback } = interview;
+  const {
+    field,
+    difficulty,
+    score,
+    createdAt,
+    questions,
+    answers,
+    aiFeedback,
+  } = interview;
 
-  // ✅ Hibrit cevap bulma (order -> question -> index fallback)
+  /* ------------------ ANSWER HELPERS ------------------ */
+
   const findAnswer = (q, idx) => {
     const arr = Array.isArray(answers) ? answers : [];
-
-    // 1) Yeni yapı: order ile eşleştir
     let a = arr.find((x) => x?.order === q?.order);
-
-    // 2) Eski yapı: question text ile eşleştir (eski kayıtlar için)
-    if (!a && q?.question) {
+    if (!a && q?.question)
       a = arr.find((x) => x?.question === q?.question);
-    }
-
-    // 3) Son fallback: index
     if (!a) a = arr[idx];
-
     return a || null;
   };
 
-  // ✅ Hibrit cevap text üretme
   const getAnswerText = (q, idx) => {
     const a = findAnswer(q, idx);
     if (!a) return "(no answer)";
-
-    const openOrCode = a.answerText ?? a.answer ?? "";
+    const open = a.answerText ?? a.answer ?? "";
     const mcq = a.selectedOption ?? "";
-
-    if (q?.type === "mcq") return mcq || openOrCode || "(no answer)";
-    return openOrCode || mcq || "(no answer)";
+    return q?.type === "mcq" ? mcq || open : open || mcq;
   };
 
   const getTypeLabel = (type) => {
     if (type === "mcq") return "MCQ";
-    if (type === "code") return "Code";
-    return "Open";
+    if (type === "code") return "CODE";
+    return "OPEN";
   };
 
+  /* ------------------ UI ------------------ */
+
   return (
-    <div style={pageStyle}>
-      <div style={containerStyle}>
-        <header style={headerStyle}>
+    <div style={Page}>
+      <div style={Container}>
+        {/* HEADER */}
+        <div style={Header}>
           <div>
             <h2>Interview Detail</h2>
-            <p style={{ fontSize: 13, opacity: 0.8 }}>
+            <span style={Meta}>
               {field} • {difficulty} • {formatDate(createdAt)}
-            </p>
+            </span>
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button style={buttonSecondary} onClick={() => navigate("/interviews")}>
-              ← Back to History
+          <div style={ButtonGroup}>
+            <button type="button" style={SecondaryButton} onClick={() => navigate("/interviews")}> 
+              ← History
             </button>
-            <button style={buttonSecondary} onClick={() => navigate("/dashboard")}>
+            <button type="button" style={SecondaryButton} onClick={() => navigate("/dashboard")}> 
               Dashboard
             </button>
           </div>
-        </header>
+        </div>
 
-        <section style={sectionStyle}>
-          <h3>Score</h3>
-          <p style={{ fontSize: 32, fontWeight: 700 }}>{score}</p>
-        </section>
+        {/* SCORE */}
+        <div style={Section}>
+          <div style={SectionTitle}>Score</div>
+          <div style={Score}>{score}</div>
+        </div>
 
-        <section style={sectionStyle}>
-          <h3>Feedback</h3>
+        {/* FEEDBACK */}
+        <div style={Section}>
+          <div style={SectionTitle}>AI Feedback</div>
+
           {aiFeedback ? (
             <>
-              {aiFeedback.feedback && <p style={{ marginTop: 4 }}>{aiFeedback.feedback}</p>}
-
-              {Array.isArray(aiFeedback.strengths) && aiFeedback.strengths.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <strong>Strengths:</strong>
-                  <ul>
-                    {aiFeedback.strengths.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
+              {aiFeedback.feedback && (
+                <div style={Paragraph}>{aiFeedback.feedback}</div>
               )}
 
-              {Array.isArray(aiFeedback.weaknesses) && aiFeedback.weaknesses.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <strong>Weaknesses:</strong>
-                  <ul>
-                    {aiFeedback.weaknesses.map((w, i) => (
-                      <li key={i}>{w}</li>
-                    ))}
-                  </ul>
-                </div>
+              {aiFeedback.strengths?.length > 0 && (
+                <ListBlock title="Strengths" color="green">
+                  {aiFeedback.strengths}
+                </ListBlock>
               )}
 
-              {Array.isArray(aiFeedback.suggestions) && aiFeedback.suggestions.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <strong>Suggestions:</strong>
-                  <ul>
-                    {aiFeedback.suggestions.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
+              {aiFeedback.weaknesses?.length > 0 && (
+                <ListBlock title="Weaknesses" color="red">
+                  {aiFeedback.weaknesses}
+                </ListBlock>
+              )}
+
+              {aiFeedback.suggestions?.length > 0 && (
+                <ListBlock title="Suggestions" color="purple">
+                  {aiFeedback.suggestions}
+                </ListBlock>
               )}
             </>
           ) : (
-            <p>No AI feedback recorded.</p>
+            <div style={Muted}>No AI feedback recorded.</div>
           )}
-        </section>
+        </div>
 
-        <section style={sectionStyle}>
-          <h3>Questions & Answers</h3>
+        {/* QUESTIONS */}
+        <div style={Section}>
+          <div style={SectionTitle}>Questions & Answers</div>
 
-          {Array.isArray(questions) && questions.length > 0 ? (
-            questions.map((q, idx) => {
-              const answerText = getAnswerText(q, idx);
-
-              return (
-                <div key={q.order || idx} style={qaBlockStyle}>
-                  <p style={questionTextStyle}>
-                    {q.order || idx + 1}.{" "}
-                    <span style={badgeStyle}>{getTypeLabel(q.type)}</span>{" "}
-                    {q.question}
-                  </p>
-
-                  {q.type === "code" ? (
-                    <pre style={codeBoxStyle}>
-                      <strong>Your answer:</strong>
-                      {"\n"}
-                      {answerText || "(no answer)"}
-                    </pre>
-                  ) : (
-                    <p style={answerTextStyle}>
-                      <strong>Your answer:</strong> {answerText || "(no answer)"}
-                    </p>
-                  )}
+          {questions?.length ? (
+            questions.map((q, idx) => (
+              <div key={q.order || idx} style={QABlock}>
+                <div style={Question}>
+                  {q.order || idx + 1}.{" "}
+                  <span style={Badge}>{getTypeLabel(q.type)}</span>
+                  {q.question}
                 </div>
-              );
-            })
+
+                {q.type === "code" ? (
+                  <div style={CodeBox}>
+                    {getAnswerText(q, idx) || "(no answer)"}
+                  </div>
+                ) : (
+                  <div style={Answer}>
+                    <strong>Your answer:</strong>{" "}
+                    {getAnswerText(q, idx) || "(no answer)"}
+                  </div>
+                )}
+              </div>
+            ))
           ) : (
-            <p>No questions stored for this interview.</p>
+            <div style={Muted}>No questions stored.</div>
           )}
-        </section>
+        </div>
       </div>
     </div>
   );
 };
 
-const pageStyle = {
+/* ------------------ SMALL COMPONENTS ------------------ */
+
+const Centered = ({ children }) => (
+  <div style={Page}>
+    <div style={Muted}>{children}</div>
+  </div>
+);
+
+const ListBlock = ({ title, color, children }) => (
+  <div style={{ marginTop: 12 }}>
+    <strong style={{ color: colors[color] }}>{title}</strong>
+    <ul style={{ marginTop: 4, paddingLeft: 18 }}>
+      {children.map((i, idx) => (
+        <li key={idx}>{i}</li>
+      ))}
+    </ul>
+  </div>
+);
+
+/* ------------------ STYLES ------------------ */
+
+const colors = {
+  green: "#4ade80",
+  red: "#f87171",
+  purple: "#a78bfa",
+};
+
+const Page = {
   minHeight: "100vh",
-  background: "#020617",
+  background: "radial-gradient(circle at top, #020617, #000)",
   color: "#e5e7eb",
   display: "flex",
-  alignItems: "center",
   justifyContent: "center",
   padding: 24,
 };
 
-const containerStyle = {
+const Container = {
   width: "100%",
-  maxWidth: 900,
-  background: "#111827",
-  padding: 24,
-  borderRadius: 12,
+  maxWidth: 960,
+  background: "#0b1220",
+  borderRadius: 16,
+  padding: 28,
+  boxShadow: "0 20px 40px rgba(0,0,0,.5)",
 };
 
-const headerStyle = {
+const Header = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 16,
 };
 
-const sectionStyle = {
-  marginTop: 16,
-  paddingTop: 8,
-  borderTop: "1px solid #374151",
-};
-
-const qaBlockStyle = {
-  marginTop: 12,
-  padding: 10,
-  borderRadius: 8,
-  background: "#020617",
-};
-
-const questionTextStyle = {
-  fontWeight: 600,
-  marginBottom: 6,
-};
-
-const answerTextStyle = {
-  fontSize: 14,
-  lineHeight: 1.5,
-};
-
-const codeBoxStyle = {
-  marginTop: 8,
-  padding: 12,
-  borderRadius: 8,
-  background: "#0b1220",
-  border: "1px solid #1f2937",
-  whiteSpace: "pre-wrap",
+const Meta = {
   fontSize: 13,
-  lineHeight: 1.5,
+  opacity: 0.75,
 };
 
-const badgeStyle = {
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: 999,
-  background: "#1f2937",
-  fontSize: 11,
-  marginRight: 6,
-  opacity: 0.9,
+const ButtonGroup = {
+  display: "flex",
+  gap: 8,
 };
 
-const buttonSecondary = {
-  padding: "6px 10px",
-  borderRadius: 8,
-  border: "1px solid #4b5563",
+const SecondaryButton = {
+  padding: "8px 14px",
+  borderRadius: 10,
+  border: "1px solid #334155",
   background: "transparent",
   color: "#e5e7eb",
   cursor: "pointer",
 };
 
-export default InterviewDetailPage;
+const Section = {
+  marginTop: 24,
+  paddingTop: 16,
+  borderTop: "1px solid #1f2937",
+};
 
+const SectionTitle = {
+  fontSize: 18,
+  fontWeight: 700,
+};
+
+const Score = {
+  fontSize: 42,
+  fontWeight: 800,
+  marginTop: 8,
+};
+
+const Paragraph = {
+  marginTop: 8,
+  lineHeight: 1.6,
+};
+
+const Muted = {
+  opacity: 0.6,
+};
+
+const QABlock = {
+  marginTop: 16,
+  padding: 14,
+  borderRadius: 12,
+  background: "#020617",
+};
+
+const Question = {
+  fontWeight: 600,
+};
+
+const Answer = {
+  marginTop: 6,
+  fontSize: 14,
+  lineHeight: 1.5,
+};
+
+const CodeBox = {
+  marginTop: 8,
+  padding: 14,
+  borderRadius: 12,
+  background: "#020617",
+  border: "1px solid #1f2937",
+  fontFamily: "monospace",
+  whiteSpace: "pre-wrap",
+  fontSize: 13,
+};
+
+const Badge = {
+  display: "inline-block",
+  padding: "2px 10px",
+  borderRadius: 999,
+  background: "#1f2937",
+  fontSize: 11,
+  marginRight: 6,
+  opacity: 0.85,
+};
+
+export default InterviewDetailPage;

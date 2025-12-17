@@ -23,9 +23,8 @@ const InterviewSetupPage = () => {
         state: { questions, timeLimitSeconds },
       });
     } catch (err) {
-      console.error(err);
       setError(
-        err.response?.data?.message || "Failed to start interview. Try again."
+        err.response?.data?.message || "Failed to start interview."
       );
     } finally {
       setLoading(false);
@@ -33,46 +32,42 @@ const InterviewSetupPage = () => {
   };
 
   return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
-        {/* ✅ Top Bar */}
-        <div style={topBarStyle}>
-          <button
-            type="button"
-            style={buttonSecondary}
-            onClick={() => navigate("/dashboard")}
-          >
-            ← Back to Dashboard
+    <div style={Page}>
+      <div style={Card}>
+        {/* TOP BAR */}
+        <div style={TopBar}>
+          <button type="button" style={Secondary} onClick={() => navigate("/dashboard")}> 
+            ← Dashboard
           </button>
-
-          <button
-            type="button"
-            style={buttonSecondary}
-            onClick={() => navigate("/interviews")}
-          >
+          <button type="button" style={Secondary} onClick={() => navigate("/interviews")}> 
             History
           </button>
         </div>
 
-        <h2>Start New Interview</h2>
+        <div style={Header}>
+          <h2>Start New Interview</h2>
+          <p style={{ opacity: 0.7, fontSize: 14 }}>
+            Configure your AI-powered interview session
+          </p>
+        </div>
 
-        {error && <div style={errorStyle}>{error}</div>}
+        {error && <div style={Error}>{error}</div>}
 
-        <form onSubmit={handleStart} style={formStyle}>
-          <div>
-            <label style={labelStyle}>Field</label>
+        <form onSubmit={handleStart}>
+          <div style={Field}>
+            <label style={Label}>Field</label>
             <input
-              style={inputStyle}
+              style={Input}
               value={field}
               onChange={(e) => setField(e.target.value)}
-              placeholder="React Native, Backend, Data Science..."
+              placeholder="React, Backend, Data Science..."
             />
           </div>
 
-          <div>
-            <label style={labelStyle}>Difficulty</label>
+          <div style={Field}>
+            <label style={Label}>Difficulty</label>
             <select
-              style={inputStyle}
+              style={Select}
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value)}
             >
@@ -82,7 +77,7 @@ const InterviewSetupPage = () => {
             </select>
           </div>
 
-          <button type="submit" style={buttonPrimary} disabled={loading}>
+          <button type="submit" style={Primary} disabled={loading}>
             {loading ? "Starting..." : "Start Interview"}
           </button>
         </form>
@@ -91,81 +86,90 @@ const InterviewSetupPage = () => {
   );
 };
 
-const pageStyle = {
+/* ---------------- STYLE SYSTEM (GLOBAL) ---------------- */
+
+const Page = {
   minHeight: "100vh",
-  background: "#020617",
-  color: "#e5e7eb",
+  background: "radial-gradient(circle at top, #020617, #000)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   padding: 24,
+  color: "#e5e7eb",
 };
 
-const cardStyle = {
-  background: "#111827",
-  padding: 24,
-  borderRadius: 12,
+const Card = {
   width: "100%",
-  maxWidth: 480,
+  maxWidth: 460,
+  background: "#0b1220",
+  padding: 28,
+  borderRadius: 16,
   border: "1px solid #1f2937",
+  boxShadow: "0 20px 40px rgba(0,0,0,.5)",
 };
 
-const topBarStyle = {
+const TopBar = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
-  gap: 8,
-  marginBottom: 12,
+  marginBottom: 16,
 };
 
-const formStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  marginTop: 16,
+const Header = {
+  marginBottom: 20,
 };
 
-const labelStyle = {
+const Field = {
+  marginBottom: 16,
+};
+
+const Label = {
   display: "block",
-  marginBottom: 4,
+  marginBottom: 6,
   fontSize: 14,
+  opacity: 0.8,
 };
 
-const inputStyle = {
+const Input = {
   width: "100%",
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid #4b5563",
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1px solid #334155",
   background: "#020617",
   color: "#e5e7eb",
   outline: "none",
 };
 
-const buttonPrimary = {
-  marginTop: 8,
-  padding: "10px 12px",
-  borderRadius: 8,
+const Select = {
+  ...Input,
+};
+
+const Primary = {
+  marginTop: 20,
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: 12,
   border: "none",
-  background: "#4f46e5",
+  background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
   color: "#fff",
-  fontWeight: 600,
+  fontWeight: 700,
   cursor: "pointer",
 };
 
-const buttonSecondary = {
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid #4b5563",
+const Secondary = {
+  padding: "8px 12px",
+  borderRadius: 10,
+  border: "1px solid #334155",
   background: "transparent",
   color: "#e5e7eb",
   cursor: "pointer",
 };
 
-const errorStyle = {
-  marginTop: 8,
-  padding: 8,
-  borderRadius: 8,
-  backgroundColor: "#b91c1c",
+const Error = {
+  marginBottom: 12,
+  padding: 10,
+  borderRadius: 10,
+  background: "#7f1d1d",
+  fontSize: 14,
 };
 
 export default InterviewSetupPage;
