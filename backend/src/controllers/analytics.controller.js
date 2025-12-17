@@ -3,7 +3,23 @@ import Interview from "../models/Interview.model.js";
 export const getDashboardStats = async (req, res) => {
   try {
     const userId = req.userId;
-    const interviews = await Interview.find({ userId }).sort({ createdAt: -1 });
+    const filter = {
+      userId,
+      $or: [
+        { status: "submitted" },
+        {
+          status: { $exists: false },
+          $or: [
+            { aiFeedback: { $ne: null } },
+            { "answers.0": { $exists: true } },
+            { score: { $gt: 0 } },
+          ],
+        },
+      ],
+    };
+
+    // Filtreyi sorguya ekliyoruz
+    const interviews = await Interview.find(filter).sort({ createdAt: -1 });
 
     // Eğer hiç mülakat yoksa default değerler
     if (interviews.length === 0) {
@@ -18,13 +34,13 @@ export const getDashboardStats = async (req, res) => {
 
     const totalInterviews = interviews.length;
 
-    // 🎯 EKSİK OLAN KISIM: totalScore'u hesapla
+    // totalScore'u hesapla
     const totalScore = interviews.reduce((sum, interview) => {
       const s = typeof interview.score === "number" ? interview.score : 0;
       return sum + s;
     }, 0);
 
-    // Ortalama skoru hesapla (tam sayı istersen Math.round yeterli)
+    // Ortalama skoru hesapla
     const averageScore = Math.round(totalScore / totalInterviews);
 
     const allStrengths = [];
