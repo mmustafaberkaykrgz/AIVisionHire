@@ -191,7 +191,7 @@ const InterviewSessionPage = () => {
   );
 };
 
-/* ---------------- STYLES (GLOBAL DİL) ---------------- */
+/* ---------------- STYLES (GLOBAL LANGUAGE) ---------------- */
 
 const Page = {
   minHeight: "100vh",

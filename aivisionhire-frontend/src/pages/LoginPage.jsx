@@ -55,7 +55,7 @@ const LoginPage = () => {
       login(res.data.user, res.data.token);
       navigate("/dashboard");
     } catch {
-      setError("Giriş başarısız. Bilgilerinizi kontrol edin.");
+      setError("Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -75,7 +75,7 @@ const LoginPage = () => {
             AIVisionHire
           </h1>
           <p className="text-center text-slate-300/80 text-sm mt-1 mb-5">
-            Yapay zeka destekli mülakat platformu
+            AI-powered interview platform
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,7 +83,7 @@ const LoginPage = () => {
               icon={<Mail size={18} />}
               type="email"
               name="email"
-              placeholder="Email adresiniz"
+              placeholder="Email address"
               value={form.email}
               onChange={handleChange}
               disabled={loading}
@@ -93,7 +93,7 @@ const LoginPage = () => {
               icon={<Lock size={18} />}
               type="password"
               name="password"
-              placeholder="Şifreniz"
+              placeholder="Your password"
               value={form.password}
               onChange={handleChange}
               disabled={loading}
@@ -108,14 +108,14 @@ const LoginPage = () => {
                 transition shadow-lg shadow-indigo-900/40
               "
             >
-              Giriş Yap
+              Login
             </button>
           </form>
 
           <p className="mt-5 text-center text-sm text-slate-400">
-            Hesabın yok mu?{" "}
+            Don't have an account?{" "}
             <Link to="/register" className="text-indigo-400 font-semibold">
-              Kayıt Ol
+              Register
             </Link>
           </p>
         </div>

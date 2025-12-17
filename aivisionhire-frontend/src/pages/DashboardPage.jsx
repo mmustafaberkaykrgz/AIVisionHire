@@ -55,7 +55,7 @@ const DetailCard = ({ title, data, icon, color }) => (
         ))}
       </div>
     ) : (
-      <p className="text-slate-500 italic">Henüz yeterli veri yok.</p>
+      <p className="text-slate-500 italic">Not enough data yet.</p>
     )}
   </div>
 );
@@ -78,7 +78,7 @@ const DashboardPage = () => {
           weaknesses: res.data?.topWeaknesses,
         });
       } catch (err) {
-        console.error("Dashboard verileri alınamadı", err);
+        console.error("Dashboard data could not be retrieved", err);
       }
     };
 
@@ -88,7 +88,7 @@ const DashboardPage = () => {
   if (!stats) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-slate-400">
-        Yükleniyor...
+        Loading...
       </div>
     );
   }
@@ -110,7 +110,7 @@ const DashboardPage = () => {
 
           <div className="flex items-center gap-4">
             <span className="hidden sm:block text-slate-400">
-              Merhaba, {user?.name}
+              Hi, {user?.name}
             </span>
             <button
               onClick={logout}
@@ -124,7 +124,7 @@ const DashboardPage = () => {
               "
             >
               <LogOut size={16} />
-              Çıkış
+              Logout
             </button>
           </div>
         </div>
@@ -134,12 +134,12 @@ const DashboardPage = () => {
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           <DashboardCard
-            title="Toplam Mülakat Sayısı"
+            title="Total Interview Count"
             value={stats.totalInterviews}
             icon={<BookOpen className="text-purple-400" />}
           />
           <DashboardCard
-            title="Ortalama Başarı Puanı"
+            title="Average Success Score"
             value={`${stats.averageScore} / 10`}
             icon={<Gauge className="text-green-400" />}
           />
@@ -147,13 +147,13 @@ const DashboardPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
           <DetailCard
-            title="En Güçlü Yönler"
+            title="Strongest Skills"
             data={stats.strengths}
             icon={<TrendingUp className="text-green-400" />}
             color="bg-green-500/20 text-green-300"
           />
           <DetailCard
-            title="Geliştirilecek Alanlar"
+            title="Areas to Improve"
             data={stats.weaknesses}
             icon={<TrendingDown className="text-red-400" />}
             color="bg-red-500/20 text-red-300"
@@ -171,7 +171,7 @@ const DashboardPage = () => {
               shadow-lg shadow-purple-600/30
             "
           >
-            Yeni Mülakat Başlat →
+            Start New Interview →
           </Link>
           <Link
             to="/interviews"
@@ -183,7 +183,7 @@ const DashboardPage = () => {
               transition
             "
           >
-            Tüm Mülakatlar
+            All Interviews
           </Link>
         </div>
       </main>
