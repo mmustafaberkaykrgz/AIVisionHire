@@ -9,7 +9,29 @@ const TOTAL_TIME_SECONDS = {
   senior: 40 * 60,  // 2400
 };
 
-// ✅ Quota dolarsa mülakat yine başlasın (fallback)
+// ✅ YENİ: Retry (Tekrar Deneme) Yardımcı Fonksiyonu
+// Model overloaded (503) hatası verirse, belirtilen sayı kadar tekrar dener.
+const generateWithRetry = async (genAI, modelName, prompt, retries = 3) => {
+  const model = genAI.getGenerativeModel({ model: modelName });
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (err) {
+      // Hata 503 (Service Unavailable) veya 429 (Too Many Requests) ise tekrar dene
+      const isOverloaded = err.message.includes("503") || err.message.includes("overloaded") || err.message.includes("429");
+      
+      if (isOverloaded && i < retries - 1) {
+        console.warn(`⚠️ Model ${modelName} yoğun (${i + 1}/${retries}). 2 saniye bekleniyor...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 saniye bekle
+      } else {
+        throw err; // Başka bir hataysa veya deneme hakkı bittiyse hatayı fırlat
+      }
+    }
+  }
+};
+
+// ✅ Quota dolarsa mülakat yine başlasın (fallback sorular)
 const fallbackQuestions = (field, difficulty) => {
   return [
     `Explain core concepts in ${field} and give real examples.`,
@@ -40,8 +62,7 @@ export const startInterview = async (req, res) => {
 
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+      
       const prompt = `
 You are an experienced technical interviewer.
 
@@ -61,7 +82,9 @@ Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
 }
       `;
 
-      const result = await model.generateContent(prompt);
+      // YENİ: Retry fonksiyonu ile çağırıyoruz
+      const result = await generateWithRetry(genAI, "gemini-2.5-flash", prompt);
+      
       const responseText = result.response
         .text()
         .replace(/json/gi, "")
@@ -124,7 +147,7 @@ Return STRICT RAW JSON ONLY (no markdown, no extra text) in this structure:
   }
 };
 
-// ✅ SUBMIT — open-ended değerlendirme (legacy alanları bozmayalım)
+// ✅ SUBMIT — open-ended değerlendirme
 export const submitInterview = async (req, res) => {
   try {
     const { interviewId, answers } = req.body;
@@ -157,7 +180,6 @@ export const submitInterview = async (req, res) => {
     let aiResult = null;
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const qaBlock = questions
         .map((q) => {
@@ -185,20 +207,40 @@ Return ONLY raw JSON in this format (no markdown):
 }
       `;
 
-      const result = await model.generateContent(prompt);
+      // YENİ: Fallback ve Retry Mekanizması
+      let result;
+      try {
+        // 1. DENEME: Ana Model (2.5 Flash)
+        console.log("Gemini 2.5 Flash ile değerlendirme başlatılıyor...");
+        result = await generateWithRetry(genAI, "gemini-2.5-flash", prompt);
+      
+      } catch (primaryErr) {
+        // 2. DENEME: Fallback Model (2.0 Flash) - 1.5 ARTIK DEPRECATED
+        console.warn("❌ 2.5 Flash yanıt vermedi. Fallback: Gemini 2.0 Flash deneniyor...", primaryErr.message);
+        result = await generateWithRetry(genAI, "gemini-2.0-flash", prompt);
+      }
+
       const rawText = result.response
         .text()
         .replace(/```/g, "")
         .trim();
       console.log("Gemini rawText:", rawText);
 
-      aiResult = JSON.parse(rawText);
+      // JSON parse güvenliği (Fazladan metin gelirse temizle)
+      const jsonStart = rawText.indexOf('{');
+      const jsonEnd = rawText.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+          aiResult = JSON.parse(rawText.substring(jsonStart, jsonEnd + 1));
+      } else {
+          throw new Error("JSON formatı bulunamadı.");
+      }
+
     } catch (err) {
       console.error("AI grading failed:", err?.message);
       aiResult = {
         score: 0,
         feedback: {
-          feedback: "AI grading unavailable (quota/parse error).",
+          feedback: "AI servisi şu an çok yoğun olduğu için değerlendirme yapılamadı. Puanınız kaydedildi, detaylı geri bildirimi daha sonra kontrol ediniz.",
           strengths: [],
           weaknesses: [],
           suggestions: [],
@@ -299,6 +341,6 @@ export const abandonInterview = async (req, res) => {
     res.status(500).json({
       message: "Error abandoning interview",
       error: error.message,
-    });
-  }
+    });
+  }
 };
