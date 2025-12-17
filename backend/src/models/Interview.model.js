@@ -71,6 +71,8 @@ const InterviewSchema = new mongoose.Schema(
 
     // Tüm mülakat için toplam süre (saniye)
     timeLimitSeconds: { type: Number },
+    // Interview status
+    status: { type: String, enum: ["submitted", "abandoned", "in_progress"], default: "in_progress" },
   },
   { timestamps: true }
 );

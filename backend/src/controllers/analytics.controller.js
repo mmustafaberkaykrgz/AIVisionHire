@@ -3,25 +3,16 @@ import Interview from "../models/Interview.model.js";
 export const getDashboardStats = async (req, res) => {
   try {
     const userId = req.userId;
-    const filter = {
+    // Only count interviews that are completed (submitted) or legacy (no status)
+    const interviews = await Interview.find({
       userId,
       $or: [
         { status: "submitted" },
-        {
-          status: { $exists: false },
-          $or: [
-            { aiFeedback: { $ne: null } },
-            { "answers.0": { $exists: true } },
-            { score: { $gt: 0 } },
-          ],
-        },
-      ],
-    };
+        { status: { $exists: false } }
+      ]
+    }).sort({ createdAt: -1 });
 
-    // Filtreyi sorguya ekliyoruz
-    const interviews = await Interview.find(filter).sort({ createdAt: -1 });
-
-    // Eğer hiç mülakat yoksa default değerler
+    // If there are no completed interviews
     if (interviews.length === 0) {
       return res.json({
         totalInterviews: 0,
@@ -33,27 +24,23 @@ export const getDashboardStats = async (req, res) => {
     }
 
     const totalInterviews = interviews.length;
-
-    // totalScore'u hesapla
     const totalScore = interviews.reduce((sum, interview) => {
-      const s = typeof interview.score === "number" ? interview.score : 0;
-      return sum + s;
+      return sum + (typeof interview.score === "number" ? interview.score : 0);
     }, 0);
-
-    // Ortalama skoru hesapla
     const averageScore = Math.round(totalScore / totalInterviews);
 
     const allStrengths = [];
     const allWeaknesses = [];
 
     interviews.forEach((interview) => {
-      if (interview.aiFeedback) {
-        if (Array.isArray(interview.aiFeedback.strengths)) {
-          allStrengths.push(...interview.aiFeedback.strengths);
-        }
-        if (Array.isArray(interview.aiFeedback.weaknesses)) {
-          allWeaknesses.push(...interview.aiFeedback.weaknesses);
-        }
+      if (!interview.aiFeedback) return;
+
+      if (Array.isArray(interview.aiFeedback.strengths)) {
+        allStrengths.push(...interview.aiFeedback.strengths);
+      }
+
+      if (Array.isArray(interview.aiFeedback.weaknesses)) {
+        allWeaknesses.push(...interview.aiFeedback.weaknesses);
       }
     });
 
@@ -69,7 +56,7 @@ export const getDashboardStats = async (req, res) => {
       return Object.entries(counts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
-        .map((entry) => entry[0]);
+        .map(([key]) => key);
     };
 
     const recentActivity = interviews.slice(0, 5).map((i) => ({
@@ -87,11 +74,12 @@ export const getDashboardStats = async (req, res) => {
       topWeaknesses: getTopTraits(allWeaknesses),
       recentActivity
     });
-    
+
   } catch (error) {
     console.error("Dashboard Stats Error:", error);
-    res
-      .status(500)
-      .json({ message: "Error generating dashboard stats", error: error.message });
+    res.status(500).json({
+      message: "Error generating dashboard stats",
+      error: error.message
+    });
   }
 };
